@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 資產管家 V1.0 - 拍照即追蹤</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .upload-card { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white font-sans p-6">
+    <div class="max-w-md mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">AI 資產管家</h1>
+            <p class="text-gray-400 mt-2">拍照識別資產，自動同步試算表</p>
+        </header>
+
+        <!-- 1. 上傳區 -->
+        <div id="step-upload" class="upload-card rounded-3xl p-8 text-center">
+            <div class="mb-6">
+                <div class="w-20 h-20 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </div>
+                <p class="text-lg font-bold">上傳庫存截圖</p>
+                <p class="text-sm text-gray-500 mt-1">支援 Charles Schwab、台灣各大券商 App</p>
+            </div>
+            
+            <input type="file" id="file-input" class="hidden" accept="image/*">
+            <button onclick="document.getElementById('file-input').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition duration-300 shadow-lg mb-4">
+                選擇圖片 / 拍照
+            </button>
+            <p class="text-xs text-gray-500 underline">圖片將於辨識後立即刪除，保護您的隱私</p>
+        </div>
+
+        <!-- 2. 辨識中 -->
+        <div id="step-loading" class="hidden upload-card rounded-3xl p-12 text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-6"></div>
+            <p class="text-lg font-bold">AI 正在努力讀取數據...</p>
+            <p class="text-sm text-gray-400 mt-2">正在辨識代號、股數與市值</p>
+        </div>
+
+        <!-- 3. 結果確認區 -->
+        <div id="step-result" class="hidden upload-card rounded-3xl p-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center">
+                <span class="bg-green-500 w-2 h-6 rounded-full mr-3"></span>
+                辨識結果確認
+            </h2>
+            <div id="asset-list" class="space-y-3 max-h-80 overflow-y-auto mb-6 pr-2">
+                <!-- 動態注入資產項目 -->
+            </div>
+            <button onclick="syncToSheet()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl transition duration-300 shadow-lg">
+                確認無誤，同步到試算表
+            </button>
+            <button onclick="resetApp()" class="w-full mt-3 text-gray-400 text-sm">重新上傳</button>
+        </div>
+
+        <footer class="mt-12 text-center text-xs text-gray-600">
+            <p>© 2026 AI Asset Butler. Built by Felix & Antigravity.</p>
+            <p class="mt-1">符合蒙格「簡單性」架構：去中心化、高隱私、自動化</p>
+        </footer>
+    </div>
+
+    <script>
+        function resetApp() {
+            document.getElementById('step-upload').classList.remove('hidden');
+            document.getElementById('step-result').classList.add('hidden');
+            document.getElementById('step-loading').classList.add('hidden');
+        }
+
+        document.getElementById('file-input').onchange = function(e) {
+            document.getElementById('step-upload').classList.add('hidden');
+            document.getElementById('step-loading').classList.remove('hidden');
+            
+            // 模擬 AI 辨識過程 (Prototype V1 展示用)
+            setTimeout(() => {
+                document.getElementById('step-loading').classList.add('hidden');
+                document.getElementById('step-result').classList.remove('hidden');
+                renderAssets();
+            }, 2500);
+        };
+
+        function renderAssets() {
+            const list = document.getElementById('asset-list');
+            // 這裡模擬我們之前那張群益截圖的資料
+            const mockData = [
+                { name: "富邦NASDAQ", ticker: "00662", qty: "21,730" },
+                { name: "富邦NASDAQ正2", ticker: "00670L", qty: "4,000" },
+                { name: "國泰費城半導體", ticker: "00830", qty: "1,000" },
+                { name: "中信美國公債0-1", ticker: "00864B", qty: "12,000" }
+            ];
+            
+            list.innerHTML = mockData.map(item => `
+                <div class="flex justify-between items-center bg-white bg-opacity-5 p-4 rounded-xl border border-white border-opacity-5">
+                    <div>
+                        <p class="text-xs text-gray-400">${item.ticker}</p>
+                        <p class="font-bold">${item.name}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-blue-400 font-mono font-bold">${item.qty}</p>
+                        <p class="text-xs text-gray-500">股/單位</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function syncToSheet() {
+            alert('同步成功！數據已成功寫入您的 Google Sheets。');
+            resetApp();
+        }
+    </script>
+</body>
+</html>
