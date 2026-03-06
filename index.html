@@ -2,193 +2,408 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 資產管家 V1.4 - 智能對位版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 資產管家 V2.0 MVP</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
-        .upload-card { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .success-animation { animation: scaleIn 0.3s ease-out; }
-        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        input[type="text"] { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 4px 8px; color: #fff; }
-        input[type="text"]:focus { border-color: #60a5fa; outline: none; }
-        .platform-btn { transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.1); }
-        .platform-btn:active { transform: scale(0.95); }
+        :root { --bg-primary: #0f172a; --bg-card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08); }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .card { backdrop-filter: blur(16px); background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; }
+        .field-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 12px; color: #fff; font-size: 15px; width: 100%; transition: border-color 0.2s; }
+        .field-input:focus { border-color: #60a5fa; outline: none; }
+        .field-input::placeholder { color: rgba(255,255,255,0.25); }
+        .btn-primary { background: #2563eb; border-radius: 14px; padding: 14px; font-weight: 700; color: #fff; width: 100%; border: none; font-size: 16px; cursor: pointer; transition: background 0.2s; }
+        .btn-primary:active { background: #1d4ed8; transform: scale(0.98); }
+        .btn-secondary { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px; font-weight: 700; color: #fff; width: 100%; cursor: pointer; font-size: 16px; transition: all 0.2s; }
+        .btn-secondary:active { background: rgba(255,255,255,0.1); }
+        .btn-success { background: #16a34a; border-radius: 14px; padding: 14px; font-weight: 700; color: #fff; width: 100%; border: none; font-size: 16px; cursor: pointer; }
+        .btn-success:active { background: #15803d; }
+        .btn-danger-sm { background: rgba(239,68,68,0.15); color: #f87171; border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+        .platform-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 16px; }
+        .platform-card:active { transform: scale(0.97); }
+        .platform-card.selected { border-color: #60a5fa; background: rgba(96,165,250,0.08); }
+        .asset-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px; }
+        .asset-row.new-row { border-color: rgba(96,165,250,0.3); animation: fadeSlideIn 0.3s ease-out; }
+        .preview-img { max-height: 200px; border-radius: 12px; object-fit: contain; border: 1px solid rgba(255,255,255,0.1); }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .badge-us { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .badge-tw { background: rgba(16,185,129,0.15); color: #34d399; }
+        .counter { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; }
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #16a34a; color: #fff; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; z-index: 100; animation: toastIn 0.3s ease-out; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #60a5fa; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .step { display: none; }
+        .step.active { display: block; }
     </style>
 </head>
-<body class="gradient-bg min-h-screen text-white font-sans p-4">
-    <div class="max-w-md mx-auto">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">AI 資產管家</h1>
-            <p class="text-gray-400 mt-2">V1.4 專業分流識別系統</p>
+<body class="min-h-screen text-white font-sans">
+    <div class="max-w-lg mx-auto p-4 pb-20">
+
+        <!-- Header -->
+        <header class="text-center pt-4 pb-6">
+            <h1 class="text-2xl font-black">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">AI 資產管家</span>
+            </h1>
+            <p class="text-gray-500 text-sm mt-1">V2.0 MVP — 截圖對照 × 手動輸入 × 一鍵匯出</p>
         </header>
 
-        <!-- Step 1: Upload -->
-        <div id="step-upload" class="upload-card rounded-3xl p-8 text-center">
-            <div class="mb-6">
-                <div class="w-20 h-20 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <!-- ==================== STEP 1: 選擇帳戶類型 ==================== -->
+        <div id="step1" class="step active">
+            <div class="card p-6">
+                <h2 class="text-lg font-bold mb-1">第一步：選擇帳戶類型</h2>
+                <p class="text-gray-500 text-sm mb-5">選擇您要記錄的券商帳戶種類</p>
+
+                <div class="space-y-3" id="platform-options">
+                    <div class="platform-card" onclick="selectPlatform('us')" id="opt-us">
+                        <span class="text-3xl">🇺🇸</span>
+                        <div>
+                            <p class="font-bold text-base">美股帳戶</p>
+                            <p class="text-xs text-gray-500">Schwab / Fidelity / Robinhood / IBKR 等</p>
+                        </div>
+                    </div>
+                    <div class="platform-card" onclick="selectPlatform('tw')" id="opt-tw">
+                        <span class="text-3xl">🇹🇼</span>
+                        <div>
+                            <p class="font-bold text-base">台股帳戶</p>
+                            <p class="text-xs text-gray-500">群益 / 永豐 / 富邦 / 國泰 / 中信 等</p>
+                        </div>
+                    </div>
+                    <div class="platform-card" onclick="selectPlatform('crypto')" id="opt-crypto">
+                        <span class="text-3xl">₿</span>
+                        <div>
+                            <p class="font-bold text-base">加密貨幣</p>
+                            <p class="text-xs text-gray-500">Coinbase / Binance / 冷錢包 等</p>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-lg font-bold">請上傳您的資產截圖</p>
-                <p class="text-sm text-gray-500 mt-1">AI 將自動解析並請求類別確認</p>
             </div>
-            
-            <input type="file" id="file-input" class="hidden" accept="image/*">
-            <button onclick="document.getElementById('file-input').click()" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl font-bold shadow-lg mb-4">
-                選擇圖片 / 拍照
-            </button>
-            <p class="text-xs text-gray-500 italic">"圖片識別後即毀，確保您的隱私安全"</p>
         </div>
 
-        <!-- Step 2: Loading (Short) -->
-        <div id="step-loading" class="hidden upload-card rounded-3xl p-12 text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500 mx-auto mb-6"></div>
-            <p id="loading-text" class="text-lg font-medium">AI 正在讀取圖表內容...</p>
-        </div>
-
-        <!-- Step 2.5: Platform Selection -->
-        <div id="step-platform" class="hidden upload-card rounded-3xl p-8 text-center success-animation">
-            <h2 class="text-xl font-bold mb-2">請確認資產類別</h2>
-            <p class="text-gray-400 text-sm mb-8">AI 偵測到多種可能的帳戶類型</p>
-            
-            <div class="grid grid-cols-1 gap-4">
-                <button onclick="selectPlatform('tw')" class="platform-btn bg-white bg-opacity-5 hover:bg-opacity-10 p-6 rounded-2xl flex items-center justify-between group">
-                    <div class="flex items-center">
-                        <span class="text-3xl mr-4">🇹🇼</span>
-                        <div class="text-left">
-                            <p class="font-bold">台灣券商庫存</p>
-                            <p class="text-xs text-gray-500">自動轉換代號與台幣計價</p>
-                        </div>
+        <!-- ==================== STEP 2: 上傳截圖（參考用） ==================== -->
+        <div id="step2" class="step">
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold">第二步：上傳截圖參考</h2>
+                        <p class="text-gray-500 text-sm">截圖僅供您對照輸入，不會上傳至任何伺服器</p>
                     </div>
-                    <span class="text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                    <span id="platform-badge" class="badge"></span>
+                </div>
+
+                <!-- Image Preview Area -->
+                <div id="img-preview-area" class="mb-5 text-center hidden">
+                    <img id="img-preview" class="preview-img mx-auto mb-3">
+                    <button onclick="clearImage()" class="text-xs text-gray-500 underline">移除截圖</button>
+                </div>
+
+                <input type="file" id="file-input" class="hidden" accept="image/*">
+                <button id="btn-upload-img" onclick="document.getElementById('file-input').click()" class="btn-secondary mb-3">
+                    📷 選擇截圖 / 拍照
+                </button>
+                <button onclick="goToStep(3)" class="btn-primary">
+                    開始輸入資產 →
+                </button>
+                <button onclick="goToStep(1)" class="text-gray-500 text-sm text-center w-full mt-3 cursor-pointer">← 返回選擇帳戶</button>
+            </div>
+        </div>
+
+        <!-- ==================== STEP 3: 輸入資產 ==================== -->
+        <div id="step3" class="step">
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-bold">第三步：輸入持倉</h2>
+                    <span id="platform-badge-2" class="badge"></span>
+                </div>
+
+                <!-- Floating Image Reference (collapsible) -->
+                <div id="img-ref-bar" class="hidden mb-4">
+                    <details class="bg-black bg-opacity-20 rounded-xl overflow-hidden">
+                        <summary class="p-3 text-sm text-gray-400 cursor-pointer font-medium">📷 展開截圖參考</summary>
+                        <div class="p-3 pt-0 text-center">
+                            <img id="img-ref" class="preview-img mx-auto">
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Asset Rows -->
+                <div id="asset-list" class="space-y-3 mb-4">
+                    <!-- Rows injected by JS -->
+                </div>
+
+                <button onclick="addRow()" class="btn-secondary mb-3 text-sm" style="padding:10px">
+                    ＋ 新增一筆持倉
                 </button>
 
-                <button onclick="selectPlatform('us')" class="platform-btn bg-white bg-opacity-5 hover:bg-opacity-10 p-6 rounded-2xl flex items-center justify-between group">
-                    <div class="flex items-center">
-                        <span class="text-3xl mr-4">🇺🇸</span>
-                        <div class="text-left">
-                            <p class="font-bold">美國/海外券商</p>
-                            <p class="text-xs text-gray-500">美金計價與 Symbol 提取</p>
-                        </div>
+                <!-- Summary -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="counter">
+                        <span class="text-gray-400 text-sm">共</span>
+                        <span id="row-count" class="text-white font-bold">0</span>
+                        <span class="text-gray-400 text-sm">筆</span>
                     </div>
-                    <span class="text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="goToStep(2)" class="btn-secondary" style="flex:1">← 返回</button>
+                    <button onclick="goToStep(4)" class="btn-success" style="flex:2" id="btn-to-confirm">確認資料 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== STEP 4: 確認 & 匯出 ==================== -->
+        <div id="step4" class="step">
+            <div class="card p-6">
+                <h2 class="text-lg font-bold mb-1">第四步：確認並匯出</h2>
+                <p class="text-gray-500 text-sm mb-5">檢查以下資料後，一鍵複製貼入 Google Sheets</p>
+
+                <!-- Preview Table -->
+                <div class="overflow-x-auto mb-5">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-gray-500 text-xs uppercase">
+                                <th class="text-left pb-2">代號</th>
+                                <th class="text-left pb-2">名稱</th>
+                                <th class="text-right pb-2">數量</th>
+                                <th class="text-right pb-2">單價</th>
+                            </tr>
+                        </thead>
+                        <tbody id="confirm-table-body">
+                        </tbody>
+                    </table>
+                </div>
+
+                <button onclick="copyToClipboard()" class="btn-primary mb-3">
+                    📋 複製數據（可直接貼入 Google Sheets）
                 </button>
-            </div>
-            
-            <button onclick="resetApp()" class="mt-8 text-gray-500 text-sm">取消並重新上傳</button>
-        </div>
+                <a href="https://docs.google.com/spreadsheets/d/1kWYzTaOXvVdn6utVQ-C87pyX30vfYn7_R4c2QjHSMMA/edit" target="_blank" class="block text-center text-blue-400 text-sm mb-4 font-medium">
+                    🔗 打開我的 Google 試算表
+                </a>
 
-        <!-- Step 3: Result Review -->
-        <div id="step-result" class="hidden upload-card rounded-3xl p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">識別結果核對</h2>
-                <button onclick="addNewRow()" class="text-xs bg-blue-500 bg-opacity-20 text-blue-300 px-3 py-1 rounded-lg border border-blue-500 border-opacity-30">+ 新增項目</button>
-            </div>
-            
-            <div id="asset-container" class="space-y-3 max-h-96 overflow-y-auto mb-6 pr-1">
-                <!-- Assets will be injected here -->
-            </div>
-
-            <div class="flex gap-2">
-                <button onclick="resetApp()" class="flex-1 bg-gray-800 py-4 rounded-2xl text-sm font-bold">重選</button>
-                <button onclick="syncToSheet()" class="flex-2 w-2/3 bg-green-600 py-4 rounded-2xl font-bold shadow-xl">確認同步</button>
+                <div class="flex gap-2">
+                    <button onclick="goToStep(3)" class="btn-secondary" style="flex:1">← 修改</button>
+                    <button onclick="finishAndReset()" class="btn-success" style="flex:2">✅ 完成，繼續下一個帳戶</button>
+                </div>
             </div>
         </div>
 
-        <!-- Step 4: Final Success -->
-        <div id="step-success" class="hidden upload-card rounded-3xl p-8 text-center success-animation">
-            <div class="w-16 h-16 bg-green-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-6 text-green-400 text-3xl">✓</div>
-            <h2 class="text-2xl font-bold mb-2">已成功同步！</h2>
-            <p class="text-gray-400 text-sm mb-8">數據已寫入您的 Google Sheets。<br>所有截圖已從記憶體中抹除。</p>
-            <a href="https://docs.google.com/spreadsheets/d/1kWYzTaOXvVdn6utVQ-C87pyX30vfYn7_R4c2QjHSMMA/edit" target="_blank" class="block w-full bg-white text-gray-900 font-bold py-4 rounded-2xl shadow-xl mb-4">
-                打開 Google 試算表
-            </a>
-            <button onclick="resetApp()" class="text-blue-400 text-sm">繼續處理下一個帳戶</button>
-        </div>
-
-        <footer class="mt-8 text-center text-[10px] text-gray-600 uppercase tracking-widest">
-            Powered by Antigravity AI Engine
-        </footer>
     </div>
 
+    <!-- Toast (hidden by default) -->
+    <div id="toast" class="toast" style="display:none"></div>
+
     <script>
-        const MOCK_US = [
-            { t: "SMH", q: "75.0686", p: "$395.35" }, { t: "QQQ", q: "44.4344", p: "$608.91" }, 
-            { t: "TSM", q: "46", p: "$353.86" }, { t: "BOXX", q: "93", p: "$115.86" }
-        ];
-        const MOCK_TW = [
-            { t: "00662", n: "富邦NASDAQ", q: "21,730" }, { t: "00670L", n: "富邦NASDAQ正2", q: "4,000" },
-            { t: "00830", n: "國泰費半", q: "1,000" }, { t: "00864B", n: "中信公債0-1", q: "12,000" }
-        ];
+    // ===== STATE =====
+    let selectedPlatform = '';
+    let hasImage = false;
+    let assets = [];
+    let rowIdCounter = 0;
 
-        function resetApp() { location.reload(); }
+    const PLATFORM_CONFIG = {
+        us: {
+            label: '美股',
+            badgeClass: 'badge-us',
+            fields: { symbol: 'Symbol', name: '名稱 (選填)', qty: '股數', price: '現價 USD (選填)' },
+            symbolPlaceholder: 'e.g. QQQ, SMH',
+            namePlaceholder: 'e.g. Invesco QQQ Trust',
+            qtyPlaceholder: 'e.g. 44.43',
+            pricePlaceholder: 'e.g. 608.91'
+        },
+        tw: {
+            label: '台股',
+            badgeClass: 'badge-tw',
+            fields: { symbol: '代號', name: '名稱 (選填)', qty: '股數', price: '現價 TWD (選填)' },
+            symbolPlaceholder: 'e.g. 2330, 00662',
+            namePlaceholder: 'e.g. 台積電, 富邦NASDAQ',
+            qtyPlaceholder: 'e.g. 1000',
+            pricePlaceholder: 'e.g. 1050'
+        },
+        crypto: {
+            label: '加密貨幣',
+            badgeClass: 'badge-us',
+            fields: { symbol: '幣種', name: '平台 (選填)', qty: '數量', price: '現價 USD (選填)' },
+            symbolPlaceholder: 'e.g. BTC, ETH, SOL',
+            namePlaceholder: 'e.g. Coinbase, Ledger',
+            qtyPlaceholder: 'e.g. 0.5',
+            pricePlaceholder: 'e.g. 95000'
+        }
+    };
 
-        document.getElementById('file-input').onchange = function(e) {
-            document.getElementById('step-upload').classList.add('hidden');
-            document.getElementById('step-loading').classList.remove('hidden');
-            
-            // 快速掃描後顯示類別選擇
-            setTimeout(() => {
-                document.getElementById('step-loading').classList.add('hidden');
-                document.getElementById('step-platform').classList.remove('hidden');
-            }, 1200);
+    // ===== NAVIGATION =====
+    function goToStep(n) {
+        if (n === 3 && assets.length === 0) addRow(); // auto-add first row
+        if (n === 4) {
+            const valid = assets.filter(a => a.symbol.trim() !== '');
+            if (valid.length === 0) { showToast('⚠️ 請至少輸入一筆資產'); return; }
+            renderConfirmTable();
+        }
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+        document.getElementById('step' + n).classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== PLATFORM SELECTION =====
+    function selectPlatform(type) {
+        selectedPlatform = type;
+        document.querySelectorAll('.platform-card').forEach(el => el.classList.remove('selected'));
+        document.getElementById('opt-' + type).classList.add('selected');
+        const cfg = PLATFORM_CONFIG[type];
+        document.getElementById('platform-badge').className = 'badge ' + cfg.badgeClass;
+        document.getElementById('platform-badge').textContent = cfg.label;
+        document.getElementById('platform-badge-2').className = 'badge ' + cfg.badgeClass;
+        document.getElementById('platform-badge-2').textContent = cfg.label;
+        assets = [];
+        rowIdCounter = 0;
+        setTimeout(() => goToStep(2), 200);
+    }
+
+    // ===== IMAGE UPLOAD =====
+    document.getElementById('file-input').onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            hasImage = true;
+            document.getElementById('img-preview').src = ev.target.result;
+            document.getElementById('img-preview-area').classList.remove('hidden');
+            document.getElementById('btn-upload-img').textContent = '📷 更換截圖';
+            // Also set the reference image for step 3
+            document.getElementById('img-ref').src = ev.target.result;
+            document.getElementById('img-ref-bar').classList.remove('hidden');
         };
+        reader.readAsDataURL(file);
+    };
 
-        function selectPlatform(type) {
-            document.getElementById('step-platform').classList.add('hidden');
-            document.getElementById('step-loading').classList.remove('hidden');
-            document.getElementById('loading-text').innerText = "正在提取詳細數據...";
-            
-            setTimeout(() => {
-                document.getElementById('step-loading').classList.add('hidden');
-                document.getElementById('step-result').classList.remove('hidden');
-                renderAssets(type === 'tw' ? MOCK_TW : MOCK_US, type === 'tw');
-            }, 1500);
-        }
+    function clearImage() {
+        hasImage = false;
+        document.getElementById('img-preview-area').classList.add('hidden');
+        document.getElementById('img-ref-bar').classList.add('hidden');
+        document.getElementById('btn-upload-img').textContent = '📷 選擇截圖 / 拍照';
+        document.getElementById('file-input').value = '';
+    }
 
-        function renderAssets(data, isTW) {
-            const container = document.getElementById('asset-container');
-            container.innerHTML = data.map(item => `
-                <div class="bg-gray-800 bg-opacity-40 p-4 rounded-2xl border border-white border-opacity-5 flex justify-between items-center">
-                    <div class="flex flex-col gap-1">
-                        <input type="text" value="${item.t}" class="w-20 font-bold text-blue-400 text-sm">
-                        <span class="text-[10px] text-gray-500 font-medium">${isTW ? (item.n || '台股標的') : (item.p || 'US Asset')}</span>
+    // ===== ASSET ROWS =====
+    function addRow() {
+        const id = rowIdCounter++;
+        assets.push({ id, symbol: '', name: '', qty: '', price: '' });
+        renderRows();
+        updateCount();
+        // Focus on the new row's symbol input
+        setTimeout(() => {
+            const el = document.getElementById('sym-' + id);
+            if (el) el.focus();
+        }, 100);
+    }
+
+    function removeRow(id) {
+        assets = assets.filter(a => a.id !== id);
+        renderRows();
+        updateCount();
+    }
+
+    function updateField(id, field, value) {
+        const a = assets.find(a => a.id === id);
+        if (a) a[field] = value;
+    }
+
+    function updateCount() {
+        const valid = assets.filter(a => a.symbol.trim() !== '');
+        document.getElementById('row-count').textContent = valid.length;
+    }
+
+    function renderRows() {
+        const cfg = PLATFORM_CONFIG[selectedPlatform];
+        const container = document.getElementById('asset-list');
+        container.innerHTML = assets.map(a => `
+            <div class="asset-row" id="row-${a.id}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs text-gray-500 font-medium">#${a.id + 1}</span>
+                    <button onclick="removeRow(${a.id})" class="btn-danger-sm">刪除</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] text-gray-500 block mb-1">${cfg.fields.symbol}</label>
+                        <input id="sym-${a.id}" type="text" class="field-input" placeholder="${cfg.symbolPlaceholder}"
+                            value="${a.symbol}" oninput="updateField(${a.id},'symbol',this.value); updateCount()">
                     </div>
-                    <div class="text-right">
-                        <label class="text-[9px] text-gray-500 block uppercase mb-1">Quantity</label>
-                        <input type="text" value="${item.q}" class="w-24 text-right font-mono text-green-400 font-bold">
+                    <div>
+                        <label class="text-[10px] text-gray-500 block mb-1">${cfg.fields.qty}</label>
+                        <input type="text" class="field-input" placeholder="${cfg.qtyPlaceholder}" inputmode="decimal"
+                            value="${a.qty}" oninput="updateField(${a.id},'qty',this.value)">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 block mb-1">${cfg.fields.name}</label>
+                        <input type="text" class="field-input" placeholder="${cfg.namePlaceholder}"
+                            value="${a.name}" oninput="updateField(${a.id},'name',this.value)">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 block mb-1">${cfg.fields.price}</label>
+                        <input type="text" class="field-input" placeholder="${cfg.pricePlaceholder}" inputmode="decimal"
+                            value="${a.price}" oninput="updateField(${a.id},'price',this.value)">
                     </div>
                 </div>
-            `).join('');
-        }
+            </div>
+        `).join('');
+    }
 
-        function addNewRow() {
-            const container = document.getElementById('asset-container');
-            const div = document.createElement('div');
-            div.className = "bg-gray-800 bg-opacity-40 p-4 rounded-2xl border border-blue-500 border-opacity-20 flex justify-between items-center success-animation";
-            div.innerHTML = `
-                <div class="flex flex-col gap-1">
-                    <input type="text" placeholder="代號" class="w-20 font-bold text-blue-400 text-sm">
-                    <span class="text-[10px] text-gray-500 font-medium">手動新增</span>
-                </div>
-                <div class="text-right">
-                    <label class="text-[9px] text-gray-500 block uppercase mb-1">Quantity</label>
-                    <input type="text" placeholder="0" class="w-24 text-right font-mono text-green-400 font-bold">
-                </div>
-            `;
-            container.prepend(div);
-        }
+    // ===== CONFIRM TABLE =====
+    function renderConfirmTable() {
+        const valid = assets.filter(a => a.symbol.trim() !== '');
+        const tbody = document.getElementById('confirm-table-body');
+        tbody.innerHTML = valid.map(a => `
+            <tr class="border-t border-white border-opacity-5">
+                <td class="py-2 text-blue-400 font-mono font-bold">${a.symbol}</td>
+                <td class="py-2 text-gray-400">${a.name || '—'}</td>
+                <td class="py-2 text-right text-green-400 font-mono">${a.qty || '—'}</td>
+                <td class="py-2 text-right text-gray-300 font-mono">${a.price || '—'}</td>
+            </tr>
+        `).join('');
+    }
 
-        function syncToSheet() {
-            document.getElementById('step-result').classList.add('hidden');
-            document.getElementById('step-loading').classList.remove('hidden');
-            document.getElementById('loading-text').innerText = "正在加密並寫入試算表...";
-            
-            setTimeout(() => {
-                document.getElementById('step-loading').classList.add('hidden');
-                document.getElementById('step-success').classList.remove('hidden');
-            }, 1200);
-        }
+    // ===== EXPORT =====
+    function copyToClipboard() {
+        const valid = assets.filter(a => a.symbol.trim() !== '');
+        const header = '代號\t名稱\t數量\t單價';
+        const rows = valid.map(a => `${a.symbol}\t${a.name || ''}\t${a.qty || ''}\t${a.price || ''}`);
+        const tsv = [header, ...rows].join('\n');
+
+        navigator.clipboard.writeText(tsv).then(() => {
+            showToast('✅ 已複製！請前往 Google Sheets 貼上');
+        }).catch(() => {
+            // Fallback for mobile
+            const ta = document.createElement('textarea');
+            ta.value = tsv;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('✅ 已複製！請前往 Google Sheets 貼上');
+        });
+    }
+
+    // ===== TOAST =====
+    function showToast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 2500);
+    }
+
+    // ===== RESET =====
+    function finishAndReset() {
+        showToast('🎉 太棒了！您可以繼續處理下一個帳戶');
+        assets = [];
+        rowIdCounter = 0;
+        hasImage = false;
+        selectedPlatform = '';
+        clearImage();
+        document.querySelectorAll('.platform-card').forEach(el => el.classList.remove('selected'));
+        setTimeout(() => goToStep(1), 800);
+    }
     </script>
 </body>
 </html>
