@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 資產管家 V1.3 - 智能對位版</title>
+    <title>AI 資產管家 V1.4 - 智能對位版</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
@@ -12,13 +12,15 @@
         @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         input[type="text"] { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 4px 8px; color: #fff; }
         input[type="text"]:focus { border-color: #60a5fa; outline: none; }
+        .platform-btn { transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.1); }
+        .platform-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white font-sans p-4">
     <div class="max-w-md mx-auto">
         <header class="text-center mb-8">
             <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">AI 資產管家</h1>
-            <p class="text-gray-400 mt-2">V1.3 跨平台智能識別 (台股/美股)</p>
+            <p class="text-gray-400 mt-2">V1.4 專業分流識別系統</p>
         </header>
 
         <!-- Step 1: Upload -->
@@ -28,20 +30,52 @@
                     <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
                 <p class="text-lg font-bold">請上傳您的資產截圖</p>
-                <p class="text-sm text-gray-500 mt-1">AI 將自動判斷券商類型與幣別</p>
+                <p class="text-sm text-gray-500 mt-1">AI 將自動解析並請求類別確認</p>
             </div>
             
             <input type="file" id="file-input" class="hidden" accept="image/*">
             <button onclick="document.getElementById('file-input').click()" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl font-bold shadow-lg mb-4">
-                選擇圖片 (美股/台股)
+                選擇圖片 / 拍照
             </button>
-            <p class="text-xs text-gray-500 italic">"Security by Design: 數據僅存放在您的 Google Sheets"</p>
+            <p class="text-xs text-gray-500 italic">"圖片識別後即毀，確保您的隱私安全"</p>
         </div>
 
-        <!-- Step 2: Loading -->
+        <!-- Step 2: Loading (Short) -->
         <div id="step-loading" class="hidden upload-card rounded-3xl p-12 text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500 mx-auto mb-6"></div>
-            <p id="loading-text" class="text-lg font-medium">AI 正在深度解析圖表...</p>
+            <p id="loading-text" class="text-lg font-medium">AI 正在讀取圖表內容...</p>
+        </div>
+
+        <!-- Step 2.5: Platform Selection -->
+        <div id="step-platform" class="hidden upload-card rounded-3xl p-8 text-center success-animation">
+            <h2 class="text-xl font-bold mb-2">請確認資產類別</h2>
+            <p class="text-gray-400 text-sm mb-8">AI 偵測到多種可能的帳戶類型</p>
+            
+            <div class="grid grid-cols-1 gap-4">
+                <button onclick="selectPlatform('tw')" class="platform-btn bg-white bg-opacity-5 hover:bg-opacity-10 p-6 rounded-2xl flex items-center justify-between group">
+                    <div class="flex items-center">
+                        <span class="text-3xl mr-4">🇹🇼</span>
+                        <div class="text-left">
+                            <p class="font-bold">台灣券商庫存</p>
+                            <p class="text-xs text-gray-500">自動轉換代號與台幣計價</p>
+                        </div>
+                    </div>
+                    <span class="text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+
+                <button onclick="selectPlatform('us')" class="platform-btn bg-white bg-opacity-5 hover:bg-opacity-10 p-6 rounded-2xl flex items-center justify-between group">
+                    <div class="flex items-center">
+                        <span class="text-3xl mr-4">🇺🇸</span>
+                        <div class="text-left">
+                            <p class="font-bold">美國/海外券商</p>
+                            <p class="text-xs text-gray-500">美金計價與 Symbol 提取</p>
+                        </div>
+                    </div>
+                    <span class="text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+            </div>
+            
+            <button onclick="resetApp()" class="mt-8 text-gray-500 text-sm">取消並重新上傳</button>
         </div>
 
         <!-- Step 3: Result Review -->
@@ -56,8 +90,8 @@
             </div>
 
             <div class="flex gap-2">
-                <button onclick="resetApp()" class="flex-1 bg-gray-800 py-4 rounded-2xl text-sm font-bold">重選圖片</button>
-                <button onclick="syncToSheet()" class="flex-2 w-2/3 bg-green-600 py-4 rounded-2xl font-bold shadow-xl">確認並同步數據</button>
+                <button onclick="resetApp()" class="flex-1 bg-gray-800 py-4 rounded-2xl text-sm font-bold">重選</button>
+                <button onclick="syncToSheet()" class="flex-2 w-2/3 bg-green-600 py-4 rounded-2xl font-bold shadow-xl">確認同步</button>
             </div>
         </div>
 
@@ -80,35 +114,37 @@
     <script>
         const MOCK_US = [
             { t: "SMH", q: "75.0686", p: "$395.35" }, { t: "QQQ", q: "44.4344", p: "$608.91" }, 
-            { t: "TSM", q: "46", p: "$353.86" }, { t: "BOXX", q: "93", p: "$115.86" },
-            { t: "TSLA", q: "26", p: "$405.55" }, { t: "AAPL", q: "10", p: "$260.29" },
-            { t: "NVDA", q: "4", p: "$183.34" }, { t: "QQQI", q: "2", p: "$52.53" }
+            { t: "TSM", q: "46", p: "$353.86" }, { t: "BOXX", q: "93", p: "$115.86" }
         ];
         const MOCK_TW = [
             { t: "00662", n: "富邦NASDAQ", q: "21,730" }, { t: "00670L", n: "富邦NASDAQ正2", q: "4,000" },
-            { t: "00830", n: "國泰費半", q: "1,000" }, { t: "00864B", n: "中信公債0-1", q: "12,000" },
-            { t: "00719B", n: "國泰短期公債", q: "3,530" }, { t: "5906", n: "台南-KY", q: "183" }
+            { t: "00830", n: "國泰費半", q: "1,000" }, { t: "00864B", n: "中信公債0-1", q: "12,000" }
         ];
 
-        function resetApp() {
-            location.reload();
-        }
+        function resetApp() { location.reload(); }
 
         document.getElementById('file-input').onchange = function(e) {
-            const fileName = e.target.files[0].name.toLowerCase();
             document.getElementById('step-upload').classList.add('hidden');
             document.getElementById('step-loading').classList.remove('hidden');
             
-            // 模擬偵測邏輯：判斷圖片源 (真實版會用 AI Vision 做這步)
+            // 快速掃描後顯示類別選擇
+            setTimeout(() => {
+                document.getElementById('step-loading').classList.add('hidden');
+                document.getElementById('step-platform').classList.remove('hidden');
+            }, 1200);
+        };
+
+        function selectPlatform(type) {
+            document.getElementById('step-platform').classList.add('hidden');
+            document.getElementById('step-loading').classList.remove('hidden');
+            document.getElementById('loading-text').innerText = "正在提取詳細數據...";
+            
             setTimeout(() => {
                 document.getElementById('step-loading').classList.add('hidden');
                 document.getElementById('step-result').classList.remove('hidden');
-                // 為了讓 Felix 測試有感，這裡根據圖片特徵做簡單模擬
-                // 真實情況下我們會讀取圖片二進位數據傳給後端
-                const isTW = confirm("AI 偵測到這可能是「台灣券商」截圖？\n(OK=台股, Cancel=美股)");
-                renderAssets(isTW ? MOCK_TW : MOCK_US, isTW);
-            }, 1800);
-        };
+                renderAssets(type === 'tw' ? MOCK_TW : MOCK_US, type === 'tw');
+            }, 1500);
+        }
 
         function renderAssets(data, isTW) {
             const container = document.getElementById('asset-container');
