@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 資產管家 V2.2 - 專業實體版</title>
+    <title>AI 資產管家 V2.3 - 實體 AI 版</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         :root { --bg-primary: #0f172a; --bg-card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08); }
@@ -56,7 +56,7 @@
             <h1 class="text-2xl font-black">
                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">AI 資產管家</span>
             </h1>
-            <p class="text-gray-500 text-sm mt-1">V2.2 — 專業分類 × AI 辨識 × 精確對位公式</p>
+            <p class="text-gray-500 text-sm mt-1">V2.3 — 真正的本地 AI 辨識 (Gemini 內建)</p>
         </header>
 
         <!-- STEP 1: 選擇帳戶類型 -->
@@ -227,45 +227,48 @@
     }
 
     async function callOCR() {
-        const apiKey = localStorage.getItem('GEMINI_API_KEY');
-        if (!apiKey && (!uploadedImage || !uploadedImage.startsWith('data:image/png;base64,iVBORw0KGgoAAA'))) { 
-            const input = prompt('請輸入 Gemini API Key 以啟用 AI 辨識功能 (將儲存在本地瀏覽器)：');
-            if (input) {
-                localStorage.setItem('GEMINI_API_KEY', input);
-            }
-        }
-
-        showLoading(true, 'AI 正在分析截圖內容...');
+        showLoading(true, 'AI 正在進行深度掃描...');
         
-        // Mocking logic upgrade for V2.2
-        await new Promise(r => setTimeout(r, 1500)); 
+        try {
+            // 自動偵測當前訪問的是 localhost 還是外部 IP
+            const host = window.location.hostname === 'localhost' ? 'localhost' : '127.0.0.1';
+            const response = await fetch(`http://${host}:3000/api/ocr`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: uploadedImage,
+                    platform: selectedPlatform
+                })
+            });
 
-        let mockData = [];
-        if (selectedPlatform === 'us') {
-            mockData = [
-                { symbol: 'AAPL', qty: '10', price: '185.2' },
-                { symbol: 'TSLA', qty: '5', price: '240.5' },
-                { symbol: 'NVDA', qty: '2', price: '480.1' }
-            ];
-        } else if (selectedPlatform === 'tw') {
-            mockData = [
-                { symbol: '2330', qty: '1000', price: '620' },
-                { symbol: '2454', qty: '500', price: '950' }
-            ];
-        } else if (selectedPlatform === 'crypto') {
-            mockData = [
-                { symbol: 'BTC', qty: '0.5', price: '45000' },
-                { symbol: 'ETH', qty: '10', price: '2500' },
-                { symbol: 'SOL', qty: '100', price: '95' }
-            ];
+            if (!response.ok) {
+                throw new Error('OCR 伺服器響應錯誤');
+            }
+
+            const data = await response.json();
+            const results = data.results;
+
+            if (results && results.length > 0) {
+                currentAssets = results.map((d, i) => ({
+                    id: rowIdCounter++,
+                    symbol: d.symbol || '',
+                    qty: d.qty || '',
+                    price: d.price || ''
+                }));
+                renderRows();
+                updateCount();
+                showLoading(false);
+                goToStep(3);
+                showToast('✅ AI 辨識成功！');
+            } else {
+                throw new Error('辨識結果為空');
+            }
+
+        } catch (error) {
+            console.error('OCR Error:', error);
+            showLoading(false);
+            showToast('❌ 辨識失敗：' + error.message);
         }
-
-        currentAssets = mockData.map((d, i) => ({id: rowIdCounter++, ...d}));
-        renderRows();
-        updateCount();
-        showLoading(false);
-        goToStep(3);
-        showToast('✅ AI 辨識成功 (V2.2 模擬模式)！');
     }
 
     function addRow() {
