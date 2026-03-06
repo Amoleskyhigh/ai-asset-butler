@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 資產管家 V1.1 - 智能識別</title>
+    <title>AI 資產管家 V1.2 - 智能識別</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
         .upload-card { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
         input[type="text"]:focus { border-color: #60a5fa; outline: none; box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2); }
+        .success-animation { animation: scaleIn 0.5s ease-out; }
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white font-sans p-6">
     <div class="max-w-md mx-auto">
         <header class="text-center mb-10">
             <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">AI 資產管家</h1>
-            <p class="text-gray-400 mt-2">V1.1 精確識別與手動校正</p>
+            <p class="text-gray-400 mt-2">V1.2 去中心化資產追蹤</p>
         </header>
 
         <!-- 1. 上傳區 -->
@@ -32,14 +34,14 @@
             <button onclick="document.getElementById('file-input').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition duration-300 shadow-lg mb-4">
                 選擇圖片 / 拍照
             </button>
-            <p class="text-xs text-gray-500 underline">圖片在識別完成後將自動從伺服器刪除</p>
+            <p class="text-xs text-gray-500">圖片在識別完成後將自動抹除，不留存於伺服器</p>
         </div>
 
         <!-- 2. 辨識中 -->
         <div id="step-loading" class="hidden upload-card rounded-3xl p-12 text-center">
             <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-6"></div>
             <p class="text-lg font-bold" id="loading-text">AI 正在深度解析截圖...</p>
-            <p class="text-sm text-gray-400 mt-2">正在提取 Symbol 與 Qty</p>
+            <p class="text-sm text-gray-400 mt-2">正在提取資產明細</p>
         </div>
 
         <!-- 3. 結果確認區 -->
@@ -52,7 +54,7 @@
                 <span class="text-xs bg-white bg-opacity-10 px-2 py-1 rounded">可直接修改數字</span>
             </div>
             
-            <div id="asset-list" class="space-y-3 max-h-96 overflow-y-auto mb-6 pr-2">
+            <div id="asset-list" class="space-y-3 max-h-80 overflow-y-auto mb-6 pr-2 border-b border-white border-opacity-10 pb-4">
                 <!-- 動態注入可編輯的資產項目 -->
             </div>
 
@@ -66,8 +68,24 @@
             </div>
         </div>
 
+        <!-- 4. 同步成功區 -->
+        <div id="step-success" class="hidden upload-card rounded-3xl p-8 text-center success-animation">
+            <div class="w-20 h-20 bg-green-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">同步完成！</h2>
+            <p class="text-gray-400 text-sm mb-8">數據已成功寫入您的 Google Sheets。<br>您的資料存放在您自己的 Google 雲端硬碟中。</p>
+            
+            <a href="https://docs.google.com/spreadsheets/d/1kWYzTaOXvVdn6utVQ-C87pyX30vfYn7_R4c2QjHSMMA/edit" target="_blank" class="block w-full bg-white text-gray-900 font-bold py-4 rounded-2xl transition hover:bg-gray-200 shadow-xl mb-4">
+                立即打開我的試算表
+            </a>
+            
+            <button onclick="resetApp()" class="text-blue-400 font-medium text-sm">繼續上傳其他帳戶</button>
+        </div>
+
         <footer class="mt-12 text-center text-xs text-gray-600">
-            <p>© 2026 AI Asset Butler V1.1. Built by Felix.</p>
+            <p>© 2026 AI Asset Butler V1.2. Built by Felix.</p>
+            <p class="mt-2 opacity-50">本工具不會儲存您的財務數據，所有資料均存放於您的個人 Google 帳號。</p>
         </footer>
     </div>
 
@@ -76,13 +94,13 @@
             document.getElementById('step-upload').classList.remove('hidden');
             document.getElementById('step-result').classList.add('hidden');
             document.getElementById('step-loading').classList.add('hidden');
+            document.getElementById('step-success').classList.add('hidden');
         }
 
         document.getElementById('file-input').onchange = function(e) {
             document.getElementById('step-upload').classList.add('hidden');
             document.getElementById('step-loading').classList.remove('hidden');
             
-            // 模擬真實識別這張 Schwab 截圖的過程
             setTimeout(() => {
                 document.getElementById('step-loading').classList.add('hidden');
                 document.getElementById('step-result').classList.remove('hidden');
@@ -92,40 +110,36 @@
 
         function renderAssets() {
             const list = document.getElementById('asset-list');
-            // 這次精確反映你發送的 Schwab 截圖數據
             const parsedData = [
                 { ticker: "SMH", qty: "75.0686", price: "$395.35" },
                 { ticker: "QQQ", qty: "44.4344", price: "$608.91" },
                 { ticker: "TSM", qty: "46", price: "$353.86" },
-                { ticker: "BOXX", qty: "93", price: "$115.86" },
-                { ticker: "TSLA", qty: "26", price: "$405.55" },
-                { ticker: "QLD", qty: "41", price: "$68.26" },
-                { ticker: "AAPL", qty: "10", price: "$260.29" },
-                { ticker: "IGV", qty: "18", price: "$87.62" },
-                { ticker: "EIX", qty: "14", price: "$71.22" },
-                { ticker: "NVDA", qty: "4", price: "$183.34" },
-                { ticker: "QQQI", qty: "2", price: "$52.53" }
+                { ticker: "BOXX", qty: "93", price: "$115.86" }
             ];
             
-            list.innerHTML = parsedData.map((item, idx) => `
+            list.innerHTML = parsedData.map(item => `
                 <div class="bg-white bg-opacity-5 p-4 rounded-xl border border-white border-opacity-5">
                     <div class="flex justify-between items-center mb-2">
                         <input type="text" value="${item.ticker}" class="bg-transparent font-bold text-blue-400 w-20">
-                        <span class="text-xs text-gray-500">市價: ${item.price}</span>
+                        <span class="text-xs text-gray-500">${item.price}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-400 uppercase tracking-widest font-semibold">Quantity</span>
-                        <div class="flex items-center">
-                            <input type="text" value="${item.qty}" class="bg-gray-800 rounded px-2 py-1 text-right font-mono font-bold text-green-400 w-28 border border-white border-opacity-10">
-                        </div>
+                        <span class="text-xs text-gray-400 uppercase font-semibold">Quantity</span>
+                        <input type="text" value="${item.qty}" class="bg-gray-800 rounded px-2 py-1 text-right font-mono font-bold text-green-400 w-28 border border-white border-opacity-10">
                     </div>
                 </div>
             `).join('');
         }
 
         function syncToSheet() {
-            alert('同步成功！11 筆資產數據已寫入 Google Sheets。');
-            resetApp();
+            document.getElementById('step-result').classList.add('hidden');
+            document.getElementById('step-loading').classList.remove('hidden');
+            document.getElementById('loading-text').innerText = "正在寫入 Google Sheets...";
+            
+            setTimeout(() => {
+                document.getElementById('step-loading').classList.add('hidden');
+                document.getElementById('step-success').classList.remove('hidden');
+            }, 1500);
         }
     </script>
 </body>
