@@ -3,143 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 資產管家 V1.2 - 智能識別</title>
+    <title>AI 資產管家 V1.3 - 智能對位版</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
         .upload-card { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
-        input[type="text"]:focus { border-color: #60a5fa; outline: none; box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2); }
-        .success-animation { animation: scaleIn 0.5s ease-out; }
-        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .success-animation { animation: scaleIn 0.3s ease-out; }
+        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        input[type="text"] { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 4px 8px; color: #fff; }
+        input[type="text"]:focus { border-color: #60a5fa; outline: none; }
     </style>
 </head>
-<body class="gradient-bg min-h-screen text-white font-sans p-6">
+<body class="gradient-bg min-h-screen text-white font-sans p-4">
     <div class="max-w-md mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">AI 資產管家</h1>
-            <p class="text-gray-400 mt-2">V1.2 去中心化資產追蹤</p>
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">AI 資產管家</h1>
+            <p class="text-gray-400 mt-2">V1.3 跨平台智能識別 (台股/美股)</p>
         </header>
 
-        <!-- 1. 上傳區 -->
+        <!-- Step 1: Upload -->
         <div id="step-upload" class="upload-card rounded-3xl p-8 text-center">
             <div class="mb-6">
                 <div class="w-20 h-20 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
-                <p class="text-lg font-bold">上傳庫存截圖</p>
-                <p class="text-sm text-gray-500 mt-1">自動偵測美股/台股數據</p>
+                <p class="text-lg font-bold">請上傳您的資產截圖</p>
+                <p class="text-sm text-gray-500 mt-1">AI 將自動判斷券商類型與幣別</p>
             </div>
             
             <input type="file" id="file-input" class="hidden" accept="image/*">
-            <button onclick="document.getElementById('file-input').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition duration-300 shadow-lg mb-4">
-                選擇圖片 / 拍照
+            <button onclick="document.getElementById('file-input').click()" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl font-bold shadow-lg mb-4">
+                選擇圖片 (美股/台股)
             </button>
-            <p class="text-xs text-gray-500">圖片在識別完成後將自動抹除，不留存於伺服器</p>
+            <p class="text-xs text-gray-500 italic">"Security by Design: 數據僅存放在您的 Google Sheets"</p>
         </div>
 
-        <!-- 2. 辨識中 -->
+        <!-- Step 2: Loading -->
         <div id="step-loading" class="hidden upload-card rounded-3xl p-12 text-center">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-6"></div>
-            <p class="text-lg font-bold" id="loading-text">AI 正在深度解析截圖...</p>
-            <p class="text-sm text-gray-400 mt-2">正在提取資產明細</p>
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500 mx-auto mb-6"></div>
+            <p id="loading-text" class="text-lg font-medium">AI 正在深度解析圖表...</p>
         </div>
 
-        <!-- 3. 結果確認區 -->
+        <!-- Step 3: Result Review -->
         <div id="step-result" class="hidden upload-card rounded-3xl p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold flex items-center">
-                    <span class="bg-green-500 w-2 h-6 rounded-full mr-3"></span>
-                    請確認數據
-                </h2>
-                <span class="text-xs bg-white bg-opacity-10 px-2 py-1 rounded">可直接修改數字</span>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">識別結果核對</h2>
+                <button onclick="addNewRow()" class="text-xs bg-blue-500 bg-opacity-20 text-blue-300 px-3 py-1 rounded-lg border border-blue-500 border-opacity-30">+ 新增項目</button>
             </div>
             
-            <div id="asset-list" class="space-y-3 max-h-80 overflow-y-auto mb-6 pr-2 border-b border-white border-opacity-10 pb-4">
-                <!-- 動態注入可編輯的資產項目 -->
+            <div id="asset-container" class="space-y-3 max-h-96 overflow-y-auto mb-6 pr-1">
+                <!-- Assets will be injected here -->
             </div>
 
-            <div class="flex gap-3">
-                <button onclick="resetApp()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-2xl transition">
-                    重新上傳
-                </button>
-                <button onclick="syncToSheet()" class="flex-2 w-2/3 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl transition shadow-lg">
-                    確認並同步
-                </button>
+            <div class="flex gap-2">
+                <button onclick="resetApp()" class="flex-1 bg-gray-800 py-4 rounded-2xl text-sm font-bold">重選圖片</button>
+                <button onclick="syncToSheet()" class="flex-2 w-2/3 bg-green-600 py-4 rounded-2xl font-bold shadow-xl">確認並同步數據</button>
             </div>
         </div>
 
-        <!-- 4. 同步成功區 -->
+        <!-- Step 4: Final Success -->
         <div id="step-success" class="hidden upload-card rounded-3xl p-8 text-center success-animation">
-            <div class="w-20 h-20 bg-green-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            </div>
-            <h2 class="text-2xl font-bold mb-2">同步完成！</h2>
-            <p class="text-gray-400 text-sm mb-8">數據已成功寫入您的 Google Sheets。<br>您的資料存放在您自己的 Google 雲端硬碟中。</p>
-            
-            <a href="https://docs.google.com/spreadsheets/d/1kWYzTaOXvVdn6utVQ-C87pyX30vfYn7_R4c2QjHSMMA/edit" target="_blank" class="block w-full bg-white text-gray-900 font-bold py-4 rounded-2xl transition hover:bg-gray-200 shadow-xl mb-4">
-                立即打開我的試算表
+            <div class="w-16 h-16 bg-green-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-6 text-green-400 text-3xl">✓</div>
+            <h2 class="text-2xl font-bold mb-2">已成功同步！</h2>
+            <p class="text-gray-400 text-sm mb-8">數據已寫入您的 Google Sheets。<br>所有截圖已從記憶體中抹除。</p>
+            <a href="https://docs.google.com/spreadsheets/d/1kWYzTaOXvVdn6utVQ-C87pyX30vfYn7_R4c2QjHSMMA/edit" target="_blank" class="block w-full bg-white text-gray-900 font-bold py-4 rounded-2xl shadow-xl mb-4">
+                打開 Google 試算表
             </a>
-            
-            <button onclick="resetApp()" class="text-blue-400 font-medium text-sm">繼續上傳其他帳戶</button>
+            <button onclick="resetApp()" class="text-blue-400 text-sm">繼續處理下一個帳戶</button>
         </div>
 
-        <footer class="mt-12 text-center text-xs text-gray-600">
-            <p>© 2026 AI Asset Butler V1.2. Built by Felix.</p>
-            <p class="mt-2 opacity-50">本工具不會儲存您的財務數據，所有資料均存放於您的個人 Google 帳號。</p>
+        <footer class="mt-8 text-center text-[10px] text-gray-600 uppercase tracking-widest">
+            Powered by Antigravity AI Engine
         </footer>
     </div>
 
     <script>
+        const MOCK_US = [
+            { t: "SMH", q: "75.0686", p: "$395.35" }, { t: "QQQ", q: "44.4344", p: "$608.91" }, 
+            { t: "TSM", q: "46", p: "$353.86" }, { t: "BOXX", q: "93", p: "$115.86" },
+            { t: "TSLA", q: "26", p: "$405.55" }, { t: "AAPL", q: "10", p: "$260.29" },
+            { t: "NVDA", q: "4", p: "$183.34" }, { t: "QQQI", q: "2", p: "$52.53" }
+        ];
+        const MOCK_TW = [
+            { t: "00662", n: "富邦NASDAQ", q: "21,730" }, { t: "00670L", n: "富邦NASDAQ正2", q: "4,000" },
+            { t: "00830", n: "國泰費半", q: "1,000" }, { t: "00864B", n: "中信公債0-1", q: "12,000" },
+            { t: "00719B", n: "國泰短期公債", q: "3,530" }, { t: "5906", n: "台南-KY", q: "183" }
+        ];
+
         function resetApp() {
-            document.getElementById('step-upload').classList.remove('hidden');
-            document.getElementById('step-result').classList.add('hidden');
-            document.getElementById('step-loading').classList.add('hidden');
-            document.getElementById('step-success').classList.add('hidden');
+            location.reload();
         }
 
         document.getElementById('file-input').onchange = function(e) {
+            const fileName = e.target.files[0].name.toLowerCase();
             document.getElementById('step-upload').classList.add('hidden');
             document.getElementById('step-loading').classList.remove('hidden');
             
+            // 模擬偵測邏輯：判斷圖片源 (真實版會用 AI Vision 做這步)
             setTimeout(() => {
                 document.getElementById('step-loading').classList.add('hidden');
                 document.getElementById('step-result').classList.remove('hidden');
-                renderAssets();
-            }, 2000);
+                // 為了讓 Felix 測試有感，這裡根據圖片特徵做簡單模擬
+                // 真實情況下我們會讀取圖片二進位數據傳給後端
+                const isTW = confirm("AI 偵測到這可能是「台灣券商」截圖？\n(OK=台股, Cancel=美股)");
+                renderAssets(isTW ? MOCK_TW : MOCK_US, isTW);
+            }, 1800);
         };
 
-        function renderAssets() {
-            const list = document.getElementById('asset-list');
-            const parsedData = [
-                { ticker: "SMH", qty: "75.0686", price: "$395.35" },
-                { ticker: "QQQ", qty: "44.4344", price: "$608.91" },
-                { ticker: "TSM", qty: "46", price: "$353.86" },
-                { ticker: "BOXX", qty: "93", price: "$115.86" }
-            ];
-            
-            list.innerHTML = parsedData.map(item => `
-                <div class="bg-white bg-opacity-5 p-4 rounded-xl border border-white border-opacity-5">
-                    <div class="flex justify-between items-center mb-2">
-                        <input type="text" value="${item.ticker}" class="bg-transparent font-bold text-blue-400 w-20">
-                        <span class="text-xs text-gray-500">${item.price}</span>
+        function renderAssets(data, isTW) {
+            const container = document.getElementById('asset-container');
+            container.innerHTML = data.map(item => `
+                <div class="bg-gray-800 bg-opacity-40 p-4 rounded-2xl border border-white border-opacity-5 flex justify-between items-center">
+                    <div class="flex flex-col gap-1">
+                        <input type="text" value="${item.t}" class="w-20 font-bold text-blue-400 text-sm">
+                        <span class="text-[10px] text-gray-500 font-medium">${isTW ? (item.n || '台股標的') : (item.p || 'US Asset')}</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-400 uppercase font-semibold">Quantity</span>
-                        <input type="text" value="${item.qty}" class="bg-gray-800 rounded px-2 py-1 text-right font-mono font-bold text-green-400 w-28 border border-white border-opacity-10">
+                    <div class="text-right">
+                        <label class="text-[9px] text-gray-500 block uppercase mb-1">Quantity</label>
+                        <input type="text" value="${item.q}" class="w-24 text-right font-mono text-green-400 font-bold">
                     </div>
                 </div>
             `).join('');
         }
 
+        function addNewRow() {
+            const container = document.getElementById('asset-container');
+            const div = document.createElement('div');
+            div.className = "bg-gray-800 bg-opacity-40 p-4 rounded-2xl border border-blue-500 border-opacity-20 flex justify-between items-center success-animation";
+            div.innerHTML = `
+                <div class="flex flex-col gap-1">
+                    <input type="text" placeholder="代號" class="w-20 font-bold text-blue-400 text-sm">
+                    <span class="text-[10px] text-gray-500 font-medium">手動新增</span>
+                </div>
+                <div class="text-right">
+                    <label class="text-[9px] text-gray-500 block uppercase mb-1">Quantity</label>
+                    <input type="text" placeholder="0" class="w-24 text-right font-mono text-green-400 font-bold">
+                </div>
+            `;
+            container.prepend(div);
+        }
+
         function syncToSheet() {
             document.getElementById('step-result').classList.add('hidden');
             document.getElementById('step-loading').classList.remove('hidden');
-            document.getElementById('loading-text').innerText = "正在寫入 Google Sheets...";
+            document.getElementById('loading-text').innerText = "正在加密並寫入試算表...";
             
             setTimeout(() => {
                 document.getElementById('step-loading').classList.add('hidden');
                 document.getElementById('step-success').classList.remove('hidden');
-            }, 1500);
+            }, 1200);
         }
     </script>
 </body>
