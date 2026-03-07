@@ -2,395 +2,319 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 資產管家 V2.3 - 實體 AI 版</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Asset Butler v3.0 - Core Brain</title>
+    <script src="https://accounts.google.com/gsi/client" onload="initTokenClient()"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --bg-primary: #0f172a; --bg-card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08); }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
-        .card { backdrop-filter: blur(16px); background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; }
-        .field-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 12px; color: #fff; font-size: 15px; width: 100%; transition: border-color 0.2s; }
-        .field-input:focus { border-color: #60a5fa; outline: none; }
-        .field-input::placeholder { color: rgba(255,255,255,0.25); }
-        .btn-primary { background: #2563eb; border-radius: 14px; padding: 14px; font-weight: 700; color: #fff; width: 100%; border: none; font-size: 16px; cursor: pointer; transition: background 0.2s; display: block; text-align: center; }
-        .btn-primary:active { background: #1d4ed8; transform: scale(0.98); }
-        .btn-secondary { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px; font-weight: 700; color: #fff; width: 100%; cursor: pointer; font-size: 16px; transition: all 0.2s; }
-        .btn-secondary:active { background: rgba(255,255,255,0.1); }
-        .btn-success { background: #16a34a; border-radius: 14px; padding: 14px; font-weight: 700; color: #fff; width: 100%; border: none; font-size: 16px; cursor: pointer; }
-        .btn-success:active { background: #15803d; }
-        .btn-danger-sm { background: rgba(239,68,68,0.15); color: #f87171; border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
-        .platform-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 16px; width: 100%; text-align: left; }
-        .platform-card:active { transform: scale(0.97); }
-        .platform-card.selected { border-color: #60a5fa; background: rgba(96,165,250,0.08); }
-        .asset-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px; }
-        .asset-row.new-row { border-color: rgba(96,165,250,0.3); animation: fadeSlideIn 0.3s ease-out; }
-        .preview-img { max-height: 200px; border-radius: 12px; object-fit: contain; border: 1px solid rgba(255,255,255,0.1); }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-        .badge-us { background: rgba(59,130,246,0.15); color: #60a5fa; }
-        .badge-tw { background: rgba(16,185,129,0.15); color: #34d399; }
-        .badge-crypto { background: rgba(245,158,11,0.15); color: #fbbf24; }
-        .counter { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; }
-        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #16a34a; color: #fff; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; z-index: 2000; animation: toastIn 0.3s ease-out; }
-        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-        .step { display: none; }
-        .step.active { display: block; }
-        .loading-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
-        .loading-overlay.active { display: flex; pointer-events: auto; opacity: 1; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #60a5fa; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading { display: none; }
+        .loading.active { display: flex; }
     </style>
 </head>
-<body class="min-h-screen text-white font-sans">
-    <div id="loading" class="loading-overlay">
-        <div class="spinner"></div>
-        <div class="flex flex-col items-center">
-            <p id="loading-text" class="font-bold text-lg mb-2">AI 辨識中...</p>
-            <p id="loading-subtext" class="text-xs text-gray-400 animate-pulse">正在調用 Mac mini (Gemini 3 Pro) 進行深度掃描</p>
-        </div>
-    </div>
-
-    <div class="max-w-lg mx-auto p-4 pb-20">
-        <header class="text-center pt-4 pb-6">
-            <h1 class="text-2xl font-black">
-                <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">AI 資產管家</span>
-            </h1>
-            <p class="text-gray-500 text-sm mt-1">V2.3 — 真正的本地 AI 辨識 (Gemini 內建)</p>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+    <div class="max-w-4xl mx-auto py-12 px-4">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-blue-700 mb-2">AI Asset Butler v3.0</h1>
+            <p class="text-slate-500">Google OAuth & Gemini Vision Production Version</p>
         </header>
 
-        <!-- STEP 1: 選擇帳戶類型 -->
-        <div id="step1" class="step active">
-            <div class="card p-6">
-                <h2 class="text-lg font-bold mb-1">第一步：選擇帳戶類型</h2>
-                <p class="text-gray-500 text-sm mb-5">點擊類別後開始，匯出時將自動分區並加總</p>
-                <div class="space-y-3">
-                    <button class="platform-card" onclick="selectPlatform('us')" id="opt-us">
-                        <span class="text-3xl">🇺🇸</span>
-                        <div>
-                            <p class="font-bold">美股帳戶</p>
-                            <p class="text-xs text-gray-500">Schwab / Fidelity / IBKR</p>
-                        </div>
-                    </button>
-                    <button class="platform-card" onclick="selectPlatform('tw')" id="opt-tw">
-                        <span class="text-3xl">🇹🇼</span>
-                        <div>
-                            <p class="font-bold">台股帳戶</p>
-                            <p class="text-xs text-gray-500">各類台灣券商 App</p>
-                        </div>
-                    </button>
-                    <button class="platform-card" onclick="selectPlatform('crypto')" id="opt-crypto">
-                        <span class="text-3xl">₿</span>
-                        <div>
-                            <p class="font-bold">加密貨幣</p>
-                            <p class="text-xs text-gray-500">交易所或冷錢包</p>
-                        </div>
-                    </button>
+        <!-- Step 1: Login -->
+        <div id="login-section" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 mb-6 text-center">
+            <h2 class="text-xl font-bold mb-4">Step 1: 授權 Google 帳號</h2>
+            <p class="text-sm text-slate-500 mb-6">我們需要存取您的雲端硬碟以建立試算表，並使用 Gemini 進行辨識。</p>
+            <button id="auth-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-all shadow-md">
+                登入 Google 並開始
+            </button>
+            <div id="user-info" class="mt-4 hidden">
+                <p class="text-green-600 font-medium">✓ 已授權存取</p>
+            </div>
+        </div>
+
+        <!-- Step 2: Spreadsheet Setup -->
+        <div id="setup-section" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 mb-6 opacity-50 pointer-events-none transition-all">
+            <h2 class="text-xl font-bold mb-4">Step 2: 初始化試算表</h2>
+            <div id="spreadsheet-status" class="flex items-center space-x-3 text-slate-600">
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent hidden" id="setup-loader"></div>
+                <p id="setup-text">請先完成登入</p>
+            </div>
+            <div id="spreadsheet-link" class="mt-4 hidden">
+                <a href="#" target="_blank" class="text-blue-600 hover:underline text-sm font-medium">開啟 AI_Asset_Butler_Holdings 試算表</a>
+            </div>
+        </div>
+
+        <!-- Step 3: Recognition -->
+        <div id="recognition-section" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 mb-6 opacity-50 pointer-events-none transition-all">
+            <h2 class="text-xl font-bold mb-4">Step 3: 上傳資產截圖 (Gemini Vision)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-slate-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100
+                ">
+            </div>
+            <div id="preview-container" class="mb-4 hidden">
+                <img id="image-preview" src="#" alt="Preview" class="max-h-64 rounded-lg border border-slate-200 shadow-inner">
+            </div>
+            <button id="recognize-btn" class="w-full bg-slate-800 hover:bg-black text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50">
+                開始 AI 辨識
+            </button>
+            
+            <div id="recognition-result" class="mt-6 hidden">
+                <h3 class="font-semibold text-slate-700 mb-2">辨識結果摘要：</h3>
+                <div class="bg-slate-50 p-4 rounded-lg overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500">
+                                <th class="py-2">代號</th>
+                                <th class="py-2">名稱</th>
+                                <th class="py-2 px-2 text-right">數量</th>
+                                <th class="py-2 px-2 text-right">單價</th>
+                                <th class="py-2 px-2 text-right">小計</th>
+                            </tr>
+                        </thead>
+                        <tbody id="result-tbody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- STEP 2: 上傳與 AI 辨識 -->
-        <div id="step2" class="step">
-            <div class="card p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold">第二步：AI 截圖辨識</h2>
-                    <span id="platform-badge" class="badge"></span>
-                </div>
-                <div id="img-preview-area" class="mb-5 text-center hidden">
-                    <img id="img-preview" class="preview-img mx-auto mb-3">
-                    <button onclick="clearImage()" class="text-xs text-gray-500 underline">移除截圖</button>
-                </div>
-                <input type="file" id="file-input" class="hidden" accept="image/*">
-                <button id="btn-upload-img" onclick="document.getElementById('file-input').click()" class="btn-secondary mb-3">📷 選擇截圖 / 拍照</button>
-                <button id="btn-ocr" onclick="callOCR()" class="btn-primary mb-4 hidden">✨ AI 自動辨識持倉</button>
-                <button onclick="goToStep(3)" class="btn-secondary">跳過辨識，手動輸入 →</button>
-                <button onclick="goToStep(1)" class="text-gray-500 text-sm text-center w-full mt-4 cursor-pointer">← 返回選擇類別</button>
-            </div>
-        </div>
-
-        <!-- STEP 3: 輸入持倉 -->
-        <div id="step3" class="step">
-            <div class="card p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold">第三步：核對持倉數據</h2>
-                    <span id="platform-badge-2" class="badge"></span>
-                </div>
-                <div id="img-ref-bar" class="hidden mb-4">
-                    <details class="bg-black bg-opacity-20 rounded-xl overflow-hidden">
-                        <summary class="p-3 text-sm text-gray-400 cursor-pointer font-medium">📷 展開截圖參考</summary>
-                        <div class="p-3 pt-0 text-center"><img id="img-ref" class="preview-img mx-auto"></div>
-                    </details>
-                </div>
-                <div id="asset-list" class="space-y-3 mb-4"></div>
-                <button onclick="addRow()" class="btn-secondary mb-3 text-sm" style="padding:10px">＋ 新增一筆持倉</button>
-                <div class="flex items-center justify-between mb-4">
-                    <div class="counter"><span class="text-gray-400 text-sm">此類別共</span><span id="row-count" class="text-white font-bold">0</span><span class="text-gray-400 text-sm">筆</span></div>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="goToStep(2)" class="btn-secondary" style="flex:1">← 返回</button>
-                    <button onclick="goToStep(4)" class="btn-success" style="flex:2">確認並匯出 →</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- STEP 4: 確認 & 匯出 -->
-        <div id="step4" class="step">
-            <div class="card p-6">
-                <h2 class="text-lg font-bold mb-1">第四步：分類匯出數據</h2>
-                <p class="text-gray-500 text-sm mb-5">數據將依類別分塊，並包含 Google Sheets 計算公式</p>
-
-                <div id="final-summary" class="mb-5 space-y-4">
-                    <!-- Categories injected here -->
-                </div>
-
-                <div class="space-y-3">
-                    <button onclick="copyToClipboard()" class="btn-primary">📋 複製所有數據 (帶公式)</button>
-                    <div class="p-3 bg-blue-500 bg-opacity-10 border border-blue-500 border-opacity-20 rounded-xl text-[11px] text-blue-300 leading-relaxed">
-                        💡 貼入 Google Sheets 後，美股、台股、虛擬貨幣將自動分開，並附帶 <b>PRODUCT</b> 與 <b>SUM</b> 公式。
-                    </div>
-                    <a href="https://docs.google.com/spreadsheets/d/1kWYzTaOXvVdn6utVQ-C87pyX30vfYn7_R4c2QjHSMMA/edit" target="_blank" class="block text-center text-blue-400 text-sm py-2 font-medium">🔗 打開我的 Google 試算表</a>
-                </div>
-
-                <div class="flex gap-2 mt-6">
-                    <button onclick="goToStep(3)" class="btn-secondary" style="flex:1">← 修改</button>
-                    <button onclick="finishAndReset()" class="btn-success" style="flex:2">✅ 全部完成並清空</button>
-                </div>
-            </div>
+        <!-- Step 4: Sync -->
+        <div id="sync-section" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 opacity-50 pointer-events-none transition-all">
+            <h2 class="text-xl font-bold mb-4">Step 4: 同步到雲端</h2>
+            <button id="sync-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all">
+                確認無誤，同步寫入 Sheets
+            </button>
+            <p id="sync-status" class="mt-3 text-center text-sm font-medium text-slate-500"></p>
         </div>
     </div>
 
-    <div id="toast" class="toast" style="display:none"></div>
-
     <script>
-    let selectedPlatform = '';
-    let allAssets = { us: [], tw: [], crypto: [] };
-    let currentAssets = []; // For current UI state
-    let rowIdCounter = 0;
-    let uploadedImage = null;
-
-    const PLATFORM_CONFIG = {
-        us: { label: '美股', badgeClass: 'badge-us', header: '【美國股市資產區塊】', symbol: 'Symbol', qty: '股數', price: '單價(USD)' },
-        tw: { label: '台股', badgeClass: 'badge-tw', header: '【台灣股市資產區塊】', symbol: '代號', qty: '股數', price: '單價(TWD)' },
-        crypto: { label: '加密貨幣', badgeClass: 'badge-crypto', header: '【虛擬貨幣資產區塊】', symbol: '幣種', qty: '數量', price: '單價(USD)' }
-    };
-
-    function showLoading(show, text = 'AI 辨識中...') {
-        const el = document.getElementById('loading');
-        document.getElementById('loading-text').innerText = text;
-        if (show) el.classList.add('active'); else el.classList.remove('active');
-    }
-
-    function goToStep(n) {
-        if (n === 3 && currentAssets.length === 0) addRow();
-        if (n === 4) {
-            if (selectedPlatform) allAssets[selectedPlatform] = currentAssets;
-            renderFinalSummary();
-        }
-        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-        document.getElementById('step' + n).classList.add('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function selectPlatform(type) {
-        if (selectedPlatform) allAssets[selectedPlatform] = currentAssets;
-        selectedPlatform = type;
-        const cfg = PLATFORM_CONFIG[type];
-        document.getElementById('platform-badge').className = 'badge ' + cfg.badgeClass;
-        document.getElementById('platform-badge').textContent = cfg.label;
-        document.getElementById('platform-badge-2').className = 'badge ' + cfg.badgeClass;
-        document.getElementById('platform-badge-2').textContent = cfg.label;
-        currentAssets = allAssets[type];
-        goToStep(2);
-    }
-
-    document.getElementById('file-input').onchange = function(e) {
-        const file = e.target.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            uploadedImage = ev.target.result;
-            document.getElementById('img-preview').src = ev.target.result;
-            document.getElementById('img-preview-area').classList.remove('hidden');
-            document.getElementById('img-ref').src = ev.target.result;
-            document.getElementById('img-ref-bar').classList.remove('hidden');
-            document.getElementById('btn-ocr').classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-    };
-
-    function clearImage() {
-        uploadedImage = null;
-        document.getElementById('img-preview-area').classList.add('hidden');
-        document.getElementById('img-ref-bar').classList.add('hidden');
-        document.getElementById('btn-ocr').classList.add('hidden');
-        document.getElementById('file-input').value = '';
-    }
-
-    async function callOCR() {
-        showLoading(true, 'AI 正在進行深度掃描...');
+        const CLIENT_ID = '1059923343074-talm9pe4i4nfleu3gjjrl5la6ijn7ffp.apps.googleusercontent.com';
+        const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/generative-language';
         
-        try {
-            // 自動偵測當前訪問的是 localhost 還是外部 IP
-            const host = window.location.hostname === 'localhost' ? 'localhost' : '127.0.0.1';
-            const response = await fetch(`http://${host}:3000/api/ocr`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image: uploadedImage,
-                    platform: selectedPlatform
-                })
+        let tokenClient;
+        let accessToken = null;
+        let spreadsheetId = null;
+        let currentExtractedData = [];
+
+        // UI Helpers
+        const $ = (id) => document.getElementById(id);
+        const setOpacity = (id, level) => $(id).style.opacity = level;
+        const enable = (id) => $(id).classList.remove('pointer-events-none');
+        const show = (id) => $(id).classList.remove('hidden');
+
+        function initTokenClient() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        accessToken = tokenResponse.access_token;
+                        console.log('Access token received');
+                        onAuthenticated();
+                    }
+                },
             });
-
-            if (!response.ok) {
-                throw new Error('OCR 伺服器響應錯誤');
-            }
-
-            const data = await response.json();
-            const results = data.results;
-
-            if (results && results.length > 0) {
-                currentAssets = results.map((d, i) => ({
-                    id: rowIdCounter++,
-                    symbol: d.symbol || '',
-                    qty: d.qty || '',
-                    price: d.price || ''
-                }));
-                renderRows();
-                updateCount();
-                showLoading(false);
-                goToStep(3);
-                showToast('✅ AI 辨識成功！');
-            } else {
-                throw new Error('辨識結果為空');
-            }
-
-        } catch (error) {
-            console.error('OCR Error:', error);
-            showLoading(false);
-            showToast('❌ 辨識失敗：' + error.message);
         }
-    }
 
-    function addRow() {
-        const id = rowIdCounter++;
-        currentAssets.push({ id, symbol: '', qty: '', price: '' });
-        renderRows(); updateCount();
-    }
+        $('auth-btn').onclick = () => {
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        };
 
-    function removeRow(id) {
-        currentAssets = currentAssets.filter(a => a.id !== id);
-        renderRows(); updateCount();
-    }
+        async function onAuthenticated() {
+            show('user-info');
+            $('auth-btn').textContent = '重新授權';
+            setOpacity('setup-section', '1');
+            enable('setup-section');
+            $('setup-text').textContent = '正在檢查試算表...';
+            show('setup-loader');
 
-    function updateField(id, field, value) {
-        const a = currentAssets.find(a => a.id === id);
-        if (a) a[field] = value;
-    }
+            await setupSpreadsheet();
+        }
 
-    function updateCount() {
-        document.getElementById('row-count').textContent = currentAssets.filter(a => a.symbol.trim() !== '').length;
-    }
+        async function setupSpreadsheet() {
+            const fileName = 'AI_Asset_Butler_Holdings';
+            try {
+                // 1. Search for existing file
+                const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const searchData = await searchRes.json();
 
-    function renderRows() {
-        const cfg = PLATFORM_CONFIG[selectedPlatform];
-        document.getElementById('asset-list').innerHTML = currentAssets.map((a, index) => `
-            <div class="asset-row ${a.symbol === '' ? 'new-row' : ''}">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-gray-500 font-medium">持倉 #${index + 1}</span>
-                    <button onclick="removeRow(${a.id})" class="btn-danger-sm">刪除</button>
-                </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-[10px] text-gray-500 block mb-1">${cfg.symbol}</label>
-                        <input type="text" class="field-input" value="${a.symbol}" oninput="updateField(${a.id},'symbol',this.value); updateCount()">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-500 block mb-1">數量</label>
-                        <input type="text" class="field-input" inputmode="decimal" value="${a.qty}" oninput="updateField(${a.id},'qty',this.value)">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-500 block mb-1">單價</label>
-                        <input type="text" class="field-input" inputmode="decimal" value="${a.price}" oninput="updateField(${a.id},'price',this.value)">
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
+                if (searchData.files && searchData.files.length > 0) {
+                    spreadsheetId = searchData.files[0].id;
+                    $('setup-text').textContent = '找到現有試算表！';
+                } else {
+                    // 2. Create new spreadsheet
+                    $('setup-text').textContent = '正在建立新試算表...';
+                    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: fileName,
+                            mimeType: 'application/vnd.google-apps.spreadsheet'
+                        })
+                    });
+                    const createdFile = await createRes.json();
+                    spreadsheetId = createdFile.id;
 
-    function renderFinalSummary() {
-        const container = document.getElementById('final-summary');
-        let html = '';
-        Object.keys(allAssets).forEach(k => {
-            const list = allAssets[k].filter(a => a.symbol.trim() !== '');
-            if (list.length > 0) {
-                html += `<div class="p-4 bg-white bg-opacity-5 rounded-2xl border border-white border-opacity-10">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold">${PLATFORM_CONFIG[k].label}</span>
-                        <span class="text-xs text-gray-500">${list.length} 筆</span>
-                    </div>
-                    <div class="text-xs text-blue-400 font-mono">${list.map(a => a.symbol).join(', ')}</div>
-                </div>`;
+                    // 3. Set headers
+                    await fetch(`https://www.googleapis.com/sheets/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:E1?valueInputOption=RAW`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            values: [['代號', '名稱', '數量', '單價', '小計']]
+                        })
+                    });
+                    $('setup-text').textContent = '新試算表建立成功！';
+                }
+
+                $('setup-loader').classList.add('hidden');
+                show('spreadsheet-link');
+                $('spreadsheet-link').querySelector('a').href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+                
+                // Unlock recognition
+                setOpacity('recognition-section', '1');
+                enable('recognition-section');
+            } catch (err) {
+                console.error(err);
+                $('setup-text').textContent = '設定試算表失敗，請重新整理';
             }
-        });
-        container.innerHTML = html || '<p class="text-center text-gray-500">尚未輸入任何持倉數據</p>';
-    }
+        }
 
-    function copyToClipboard() {
-        let lines = [];
-        let grandTotalFormulaParts = [];
-        let currentSheetRow = 1; // Assuming we start at row 1 in Sheets
+        // Image Preview
+        $('image-upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    $('image-preview').src = re.target.result;
+                    show('preview-container');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
 
-        Object.keys(allAssets).forEach(k => {
-            const list = allAssets[k].filter(a => a.symbol.trim() !== '');
-            if (list.length > 0) {
-                // Header block
-                lines.push(PLATFORM_CONFIG[k].header);
-                lines.push('代號\t數量\t單價\t小計');
-                currentSheetRow += 2; // Move past header rows
+        $('recognize-btn').onclick = async () => {
+            const file = $('image-upload').files[0];
+            if (!file) return alert('請先上傳圖片');
 
-                const dataStartRow = currentSheetRow;
-                list.forEach((a, index) => {
-                    const rowNum = dataStartRow + index;
-                    // Formula for individual subtotal
-                    lines.push(`${a.symbol}\t${a.qty || 0}\t${a.price || 0}\t=B${rowNum}*C${rowNum}`);
+            $('recognize-btn').disabled = true;
+            $('recognize-btn').textContent = 'Gemini 正在分析中...';
+
+            const base64Image = await fileToBase64(file);
+            const imageData = base64Image.split(',')[1];
+
+            try {
+                // Call Gemini via Generative Language API
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: "你是一位精通金融資產辨識的 AI。請辨識這張證券或資產截圖中的持股明細。請輸出為 JSON 格式，包含一個陣列 'holdings'，每個物件包含：'symbol' (代號), 'name' (名稱), 'quantity' (數量), 'price' (單價), 'subtotal' (小計)。請務必精準提取數據，若無法辨識則為 null。僅回傳 JSON 代碼塊。" },
+                                { inline_data: { mime_type: file.type, data: imageData } }
+                            ]
+                        }],
+                        generationConfig: {
+                            response_mime_type: "application/json"
+                        }
+                    })
                 });
 
-                currentSheetRow += list.length;
-                const subtotalRow = currentSheetRow;
-                // SUM Formula for the category
-                lines.push(`\t\t小計：\t=SUM(D${dataStartRow}:D${subtotalRow - 1})`);
+                const data = await response.json();
+                const content = JSON.parse(data.candidates[0].content.parts[0].text);
+                renderResults(content.holdings);
                 
-                grandTotalFormulaParts.push(`D${subtotalRow}`);
-                lines.push(''); // Empty line between blocks
-                currentSheetRow += 2; // Account for subtotal row and empty line
+                currentExtractedData = content.holdings;
+                $('recognize-btn').textContent = '辨識完成';
+                
+                // Unlock Sync
+                setOpacity('sync-section', '1');
+                enable('sync-section');
+            } catch (err) {
+                console.error(err);
+                alert('辨識失敗，請檢查網路或 API 權限');
+                $('recognize-btn').disabled = false;
+                $('recognize-btn').textContent = '開始 AI 辨識';
             }
-        });
+        };
 
-        if (grandTotalFormulaParts.length > 0) {
-            lines.push('【總資產摘要】');
-            lines.push(`股票/虛幣總計\t=SUM(${grandTotalFormulaParts.join(',')})`);
+        function renderResults(holdings) {
+            const tbody = $('result-tbody');
+            tbody.innerHTML = '';
+            holdings.forEach(h => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-50";
+                tr.innerHTML = `
+                    <td class="py-3 font-medium text-slate-900">${h.symbol || '-'}</td>
+                    <td class="py-3">${h.name || '-'}</td>
+                    <td class="py-3 px-2 text-right font-mono">${h.quantity || 0}</td>
+                    <td class="py-3 px-2 text-right font-mono">${h.price || 0}</td>
+                    <td class="py-3 px-2 text-right font-bold text-blue-600 font-mono">${h.subtotal || 0}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            show('recognition-result');
         }
 
-        const finalContent = lines.join('\n');
-        navigator.clipboard.writeText(finalContent).then(() => {
-            showToast('✅ 精確公式數據已複製！');
-            console.log('Exported Content:\n', finalContent);
-        });
-    }
+        $('sync-btn').onclick = async () => {
+            if (!currentExtractedData.length) return;
+            
+            $('sync-btn').disabled = true;
+            $('sync-btn').textContent = '同步中...';
+            
+            const values = currentExtractedData.map(h => [
+                h.symbol, h.name, h.quantity, h.price, h.subtotal
+            ]);
 
-    function showToast(msg) {
-        const el = document.getElementById('toast');
-        el.textContent = msg; el.style.display = 'block';
-        setTimeout(() => { el.style.display = 'none'; }, 2500);
-    }
+            try {
+                const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A2:E:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        values: values
+                    })
+                });
 
-    function finishAndReset() {
-        allAssets = { us: [], tw: [], crypto: [] };
-        currentAssets = [];
-        selectedPlatform = '';
-        clearImage();
-        goToStep(1);
-    }
+                if (response.ok) {
+                    $('sync-status').textContent = '✅ 成功同步至雲端試算表！';
+                    $('sync-status').className = "mt-3 text-center text-sm font-bold text-green-600";
+                    $('sync-btn').textContent = '同步成功';
+                } else {
+                    throw new Error('Sync failed');
+                }
+            } catch (err) {
+                console.error(err);
+                $('sync-status').textContent = '❌ 同步失敗，請稍後再試';
+                $('sync-status').className = "mt-3 text-center text-sm font-bold text-red-600";
+                $('sync-btn').disabled = false;
+            }
+        };
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
     </script>
 </body>
 </html>
